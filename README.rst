@@ -10,12 +10,12 @@ Simple example
 
 .. code-block:: python
 
-    from portale import PrefixedURLSession, GETRequest, GETJSONRequest
+    from portale import PrefixedURLSession
 
     session = PrefixedURLSession('https://httpbin.org/')
 
-    get_thing = GETRequest(session, 'anything?thing={0}', timeout=10)
-    long_request = GETJSONRequest(session, 'delay/{n}', timeout=20)
+    get_thing = session.GETRequest('anything?thing={0}', timeout=10)
+    long_request = session.GETJSONRequest('delay/{n}', timeout=20)
 
     thing = get_thing('snake')
 
