@@ -27,6 +27,17 @@ Cache
 -----
   
 
+`timeout` if not specified in Request initialization, session's timeout is used as default timeout for all the APIs using same session.
+
+.. code-block:: python
+
+    from portale import PrefixedURLSession
+
+    session = PrefixedURLSession('https://httpbin.org/', timeout=10)
+    get_thing = session.GETRequest('anything?thing={0}')
+    long_request = session.GETJSONRequest('delay/{n}')
+
+
 Busting cache
 
 .. code-block:: python
