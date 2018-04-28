@@ -64,9 +64,10 @@ class JSONRequest(BaseRequest):
 
 class PrefixedURLSession(requests.Session):
 
-    def __init__(self, baseurl, *args, **kw):
+    def __init__(self, baseurl, *args, timeout=0, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
+        self.timeout = timeout
         self.__post_init__()
 
     def __post_init__(self):

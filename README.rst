@@ -3,7 +3,7 @@ Portale
 
 Portale is minimalistic requests based HTTP/REST API client. 
 
-Big advantage it has over other libraries is it also lets you configure cache timeout policy for each of the APIs independently.
+Advantage over other libraries: Allows different cache timeout policy for each API
 
 Simple example
 --------------
