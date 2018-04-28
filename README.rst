@@ -17,7 +17,7 @@ Simple example
     get_thing = GETRequest(session, 'anything?thing={0}', timeout=10)
     long_request = GETJSONRequest(session, 'delay/{n}', timeout=20)
 
-    thing = get_thing()
+    thing = get_thing('snake')
 
     result = long_request(n=2)
     result = long_request(n=2)  # cached response
