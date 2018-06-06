@@ -31,7 +31,7 @@ class BaseRequest:
             self.send = self.cache
 
     def key_fn(self, *args, **kw):
-        return hashlib.md5(pickle.dumps((self.type, self.session.baseurl, self.path, kw))).hexdigest()
+        return hashlib.md5(pickle.dumps((self.type, self.session.baseurl, args, kw))).hexdigest()
 
     def method(self):
         return getattr(self.session, self.type.lower())
