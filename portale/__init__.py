@@ -12,26 +12,30 @@ from walrus import Database
 db = Database()
 cache = db.cache()
 
-logger = logging.getLogger()
-
 
 class BaseRequest:
 
     def __init__(self, session, type, path, timeout=None):
-        timeout = session.timeout if timeout is None else timeout
+        self.timeout = timeout if timeout is not None else session.timeout
+        self.cache_on = bool(self.timeout)
         self.session = session
+        self.logger = session.logger
         self.type = type
         self.path = path
-        self.cache_on = bool(timeout)
-        self.timeout = timeout
         self.send = self.method()
         if self.cache_on:
             deco = cache.cached(self.key_fn, timeout=self.timeout, metrics=True)
-            self.cache = deco(self.send)
-            self.send = self.cache
+            self.send = deco(self.send)
+            self.cache = self.send
 
-    def key_fn(self, *args, **kw):
-        return hashlib.md5(pickle.dumps((self.type, self.session.baseurl, args, kw))).hexdigest()
+    def bust(self, *pathargs, params=None, data=None, json=None, **pathkw):
+        path = self.path.format(*pathargs, **pathkw) if (
+            pathargs or pathkw
+        ) else self.path
+        self.cache.bust(path, params=params, data=data, json=json)
+
+    def key_fn(self, a, k):
+        return hashlib.md5(pickle.dumps((self.type, self.session.baseurl, a, k))).hexdigest()
 
     def method(self):
         return getattr(self.session, self.type.lower())
@@ -50,7 +54,7 @@ class BaseRequest:
         if response.status_code != 200:
             self.cache.bust(path, params=params, data=data, json=json)
             # TODO: if self.raise_if_not_200::
-            logger.error("[%s] %s", response.status_code, path)
+            self.logger.error("[%s] %s:", response.status_code, path)
             response.raise_for_status()
         result = self.process_response(response)
         return result
@@ -64,10 +68,11 @@ class JSONRequest(BaseRequest):
 
 class PrefixedURLSession(requests.Session):
 
-    def __init__(self, baseurl, *args, timeout=0, **kw):
+    def __init__(self, baseurl, *args, timeout=0, logger=None, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
         self.timeout = timeout
+        self.logger = logger or logging.getLogger()
         self.__post_init__()
 
     def __post_init__(self):

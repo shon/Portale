@@ -15,10 +15,12 @@ Simple example
     session = PrefixedURLSession('https://httpbin.org/')
 
     get_thing = session.GETRequest('anything?thing={0}', timeout=10)
-    long_request = session.GETJSONRequest('delay/{n}', timeout=20)
-
     thing = get_thing('snake')
 
+    get_thing_by_name = session.GETRequest('anything?thing={name}', timeout=10)
+    thing = get_thing_by_name(name='snake')
+
+    long_request = session.GETJSONRequest('delay/{n}', timeout=20)
     result = long_request(n=2)
     result = long_request(n=2)  # cached response
 
