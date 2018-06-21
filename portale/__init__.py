@@ -35,7 +35,9 @@ class BaseRequest:
         self.cache.bust(path, params=params, data=data, json=json)
 
     def key_fn(self, a, k):
-        return hashlib.md5(pickle.dumps((self.type, self.session.baseurl, a, k))).hexdigest()
+        return hashlib.md5(
+            pickle.dumps((self.type, self.session.baseurl, a, k))
+        ).hexdigest()
 
     def method(self):
         return getattr(self.session, self.type.lower())
@@ -86,31 +88,31 @@ class PrefixedURLSession(requests.Session):
         return response
 
     def GETRequest(self, path, timeout=None):
-        return BaseRequest(self, 'GET', path, timeout=timeout)
+        return BaseRequest(self, "GET", path, timeout=timeout)
 
     def POSTRequest(self, path, timeout=None):
-        return BaseRequest(self, 'POST', path, timeout=timeout)
+        return BaseRequest(self, "POST", path, timeout=timeout)
 
     def PATCHRequest(self, path, timeout=None):
-        return BaseRequest(self, 'PATCH', path, timeout=timeout)
+        return BaseRequest(self, "PATCH", path, timeout=timeout)
 
     def HEADRequest(self, path, timeout=None):
-        return BaseRequest(self, 'HEAD', path, timeout=timeout)
+        return BaseRequest(self, "HEAD", path, timeout=timeout)
 
     def DELETERequest(self, path, timeout=None):
-        return BaseRequest(self, 'DELETE', path, timeout=timeout)
+        return BaseRequest(self, "DELETE", path, timeout=timeout)
 
     def GETJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, 'GET', path, timeout=timeout)
+        return JSONRequest(self, "GET", path, timeout=timeout)
 
     def POSTJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, 'POST', path, timeout=timeout)
+        return JSONRequest(self, "POST", path, timeout=timeout)
 
     def PATCHJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, 'PATCH', path, timeout=timeout)
+        return JSONRequest(self, "PATCH", path, timeout=timeout)
 
     def HEADJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, 'HEAD', path, timeout=timeout)
+        return JSONRequest(self, "HEAD", path, timeout=timeout)
 
     def DELETEJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, 'DELETE', path, timeout=timeout)
+        return JSONRequest(self, "DELETE", path, timeout=timeout)
