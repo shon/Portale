@@ -1,11 +1,14 @@
-import requests
 import hashlib
 import logging
+import string
+
+import requests
 
 try:
     import _pickle as pickle
 except:
     import pickle
+
 from urllib.parse import urljoin
 from walrus import Database
 
@@ -15,24 +18,28 @@ cache = db.cache()
 
 class BaseRequest:
 
-    def __init__(self, session, type, path, timeout=None):
-        self.timeout = timeout if timeout is not None else session.timeout
-        self.cache_on = bool(self.timeout)
+    def __init__(self, session, type, path, cache_ttl=None):
+        self.cache_ttl = cache_ttl if cache_ttl is not None else session.cache_ttl
+        self.cache_on = bool(self.cache_ttl)
         self.session = session
         self.logger = session.logger
         self.type = type
         self.path = path
         self.send = self.method()
         if self.cache_on:
-            deco = cache.cached(self.key_fn, timeout=self.timeout, metrics=True)
+            deco = cache.cached(self.key_fn, timeout=self.cache_ttl, metrics=True)
             self.send = deco(self.send)
             self.cache = self.send
+        f = string.Formatter()
+        self.path_fields = tuple(t[1] for t in f.parse(self.path))
 
-    def bust(self, *pathargs, params=None, data=None, json=None, **pathkw):
-        path = self.path.format(*pathargs, **pathkw) if (
-            pathargs or pathkw
+    def bust(self, *pathargs, **kw):
+        path = self.path.format(*pathargs, **kw) if (
+            pathargs or kw
         ) else self.path
-        self.cache.bust(path, params=params, data=data, json=json)
+        payload_kw = self.kw2payload(kw)
+        payload = self.process_payload(payload_kw)
+        self.cache.bust(path, **payload)
 
     def key_fn(self, a, k):
         return hashlib.md5(
@@ -42,20 +49,28 @@ class BaseRequest:
     def method(self):
         return getattr(self.session, self.type.lower())
 
+    def process_payload(self, payload):
+        return {'data': payload}
+
+    def kw2payload(self, kw):
+        return {k: v for k, v in kw.items() if k not in self.path_fields}
+
     def process_response(self, resp):
         """
         Override to customize result
         """
         return resp
 
-    def __call__(self, *pathargs, params=None, data=None, json=None, **pathkw):
-        path = self.path.format(*pathargs, **pathkw) if (
-            pathargs or pathkw
+    def __call__(self, *pathargs, **kw):
+        path = self.path.format(*pathargs, **kw) if (
+            pathargs or kw
         ) else self.path
-        response = self.send(path, params=params, data=data, json=json)
+        payload_kw = self.kw2payload(kw)
+        payload = self.process_payload(payload_kw)
+        response = self.send(path, **payload)
         if response.status_code != 200:
             if self.cache_on:
-                self.cache.bust(path, params=params, data=data, json=json)
+                self.cache.bust(path, **payload)
             # TODO: if self.raise_if_not_200::
             self.logger.error("[%s] %s:", response.status_code, path)
             response.raise_for_status()
@@ -65,16 +80,19 @@ class BaseRequest:
 
 class JSONRequest(BaseRequest):
 
+    def process_payload(self, payload):
+        return {'json': payload}
+
     def process_response(self, resp):
         return resp.json()
 
 
 class PrefixedURLSession(requests.Session):
 
-    def __init__(self, baseurl, *args, timeout=0, logger=None, **kw):
+    def __init__(self, baseurl, *args, cache_ttl=0, logger=None, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
-        self.timeout = timeout
+        self.cache_ttl = cache_ttl
         self.logger = logger or logging.getLogger()
         self.__post_init__()
 
@@ -88,32 +106,32 @@ class PrefixedURLSession(requests.Session):
         response = super(PrefixedURLSession, self).request(method, url, *args, **kw)
         return response
 
-    def GETRequest(self, path, timeout=None):
-        return BaseRequest(self, "GET", path, timeout=timeout)
+    def GETRequest(self, path, cache_ttl=None):
+        return BaseRequest(self, "GET", path, cache_ttl=cache_ttl)
 
-    def POSTRequest(self, path, timeout=None):
-        return BaseRequest(self, "POST", path, timeout=timeout)
+    def POSTRequest(self, path, cache_ttl=None):
+        return BaseRequest(self, "POST", path, cache_ttl=cache_ttl)
 
-    def PATCHRequest(self, path, timeout=None):
-        return BaseRequest(self, "PATCH", path, timeout=timeout)
+    def PATCHRequest(self, path, cache_ttl=None):
+        return BaseRequest(self, "PATCH", path, cache_ttl=cache_ttl)
 
-    def HEADRequest(self, path, timeout=None):
-        return BaseRequest(self, "HEAD", path, timeout=timeout)
+    def HEADRequest(self, path, cache_ttl=None):
+        return BaseRequest(self, "HEAD", path, cache_ttl=cache_ttl)
 
-    def DELETERequest(self, path, timeout=None):
-        return BaseRequest(self, "DELETE", path, timeout=timeout)
+    def DELETERequest(self, path, cache_ttl=None):
+        return BaseRequest(self, "DELETE", path, cache_ttl=cache_ttl)
 
-    def GETJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, "GET", path, timeout=timeout)
+    def GETJSONRequest(self, path, cache_ttl=None):
+        return JSONRequest(self, "GET", path, cache_ttl=cache_ttl)
 
-    def POSTJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, "POST", path, timeout=timeout)
+    def POSTJSONRequest(self, path, cache_ttl=None):
+        return JSONRequest(self, "POST", path, cache_ttl=cache_ttl)
 
-    def PATCHJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, "PATCH", path, timeout=timeout)
+    def PATCHJSONRequest(self, path, cache_ttl=None):
+        return JSONRequest(self, "PATCH", path, cache_ttl=cache_ttl)
 
-    def HEADJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, "HEAD", path, timeout=timeout)
+    def HEADJSONRequest(self, path, cache_ttl=None):
+        return JSONRequest(self, "HEAD", path, cache_ttl=cache_ttl)
 
-    def DELETEJSONRequest(self, path, timeout=None):
-        return JSONRequest(self, "DELETE", path, timeout=timeout)
+    def DELETEJSONRequest(self, path, cache_ttl=None):
+        return JSONRequest(self, "DELETE", path, cache_ttl=cache_ttl)
