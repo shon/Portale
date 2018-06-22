@@ -54,7 +54,8 @@ class BaseRequest:
         ) else self.path
         response = self.send(path, params=params, data=data, json=json)
         if response.status_code != 200:
-            self.cache.bust(path, params=params, data=data, json=json)
+            if self.cache_on:
+                self.cache.bust(path, params=params, data=data, json=json)
             # TODO: if self.raise_if_not_200::
             self.logger.error("[%s] %s:", response.status_code, path)
             response.raise_for_status()
