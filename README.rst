@@ -21,8 +21,8 @@ Simple example
     thing = get_thing_by_name(name='snake')
 
     long_request = session.GETJSONRequest('delay/{n}', cache_ttl=20)
-    result1 = long_request(n=2)
-    result2 = long_request(n=2)  # cached response
+    result1 = long_request(n=2).json()
+    result2 = long_request(n=2).json()  # cached response
 
 
 Cache 
