@@ -4,7 +4,7 @@ import sys
 
 setup(
     name="portale",
-    version="0.8.0",
+    version="0.9.0",
     url="http://pypi.python.org/pypi/portale/",
     classifiers=["Programming Language :: Python :: 3"],
     include_package_data=True,

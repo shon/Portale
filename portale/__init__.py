@@ -55,12 +55,6 @@ class BaseRequest:
     def kw2payload(self, kw):
         return {k: v for k, v in kw.items() if k not in self.path_fields}
 
-    def process_response(self, resp):
-        """
-        Override to customize result
-        """
-        return resp
-
     def __call__(self, *pathargs, **kw):
         path = self.path.format(*pathargs, **kw) if (
             pathargs or kw
@@ -68,23 +62,17 @@ class BaseRequest:
         payload_kw = self.kw2payload(kw)
         payload = self.process_payload(payload_kw)
         response = self.send(path, **payload)
-        if response.status_code != 200:
+        if not response.ok:
             if self.cache_on:
                 self.cache.bust(path, **payload)
-            # TODO: if self.raise_if_not_200::
             self.logger.error("[%s] %s:", response.status_code, path)
-            response.raise_for_status()
-        result = self.process_response(response)
-        return result
+        return response
 
 
 class JSONRequest(BaseRequest):
 
     def process_payload(self, payload):
         return {'json': payload}
-
-    def process_response(self, resp):
-        return resp.json()
 
 
 class PrefixedURLSession(requests.Session):

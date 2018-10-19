@@ -1,4 +1,15 @@
-## 8.0.0
+## 0.9.0
+
+INCOMPATIBILITIES
+
+    - Removed `process_response` hook
+    - JSONRequest classes no longer try to convert response to json
+        - rationale:
+            - keep responses consistent among all Request classes
+            - keep Portale as close to requests as possible
+    - Exceptions are no longer raised on failed request (such as 4xx/5xx)
+
+## 0.8.0
 
 INCOMPATIBILITIES
 

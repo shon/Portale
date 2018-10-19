@@ -11,7 +11,7 @@ def test_set_cache_ttl():
     assert get_thing.cache_ttl == 10
     get_thing = session.GETJSONRequest("anything?thing={0}", cache_ttl=0)
     assert get_thing.cache_ttl == 0
-    res = get_thing("flask")
+    res = get_thing("flask").json()
     assert res["args"]["thing"] == "flask"
 
 
@@ -53,7 +53,7 @@ def test_post_json():
     post_req = session.POSTJSONRequest("anything")
     data = {"a": 1, "b": 2}
     resp = post_req(**data)
-    assert resp["json"] == data
+    assert resp.json()['json'] == data
 
 
 def test_url_subspost():
@@ -61,4 +61,4 @@ def test_url_subspost():
     post_req = session.POSTJSONRequest("anything/{category}")
     data = {"name": "The Tipping Point", "ISBN": " 0-316-34662-4"}
     resp = post_req(category="books", **data)
-    assert resp["json"] == data
+    assert resp.json()["json"] == data
