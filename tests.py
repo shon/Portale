@@ -1,16 +1,16 @@
 import datetime
 from portale import PrefixedURLSession
 
-session = PrefixedURLSession("https://eu.httpbin.org/", timeout=5)
+session = PrefixedURLSession("https://eu.httpbin.org/", cache_ttl=5)
 
 
-def test_set_timeout():
+def test_set_cache_ttl():
     get_thing = session.GETJSONRequest("anything?thing={0}")
-    assert get_thing.timeout == 5
-    get_thing = session.GETJSONRequest("anything?thing={0}", timeout=10)
-    assert get_thing.timeout == 10
-    get_thing = session.GETJSONRequest("anything?thing={0}", timeout=0)
-    assert get_thing.timeout == 0
+    assert get_thing.cache_ttl == 5
+    get_thing = session.GETJSONRequest("anything?thing={0}", cache_ttl=10)
+    assert get_thing.cache_ttl == 10
+    get_thing = session.GETJSONRequest("anything?thing={0}", cache_ttl=0)
+    assert get_thing.cache_ttl == 0
     res = get_thing("flask")
     assert res["args"]["thing"] == "flask"
 
@@ -18,14 +18,14 @@ def test_set_timeout():
 def test_get_params():
     get_thing_by_name = session.GETRequest("anything?thing={name}")
     resp = get_thing_by_name(name="snake")
-    assert '{"thing":"snake"}' in resp.text
+    assert {"thing":"snake"} == resp.json()['args']
 
 
 def test_cache_request():
     n = 2
-    timeout = 20
-    long_request = session.GETJSONRequest("delay/{n}", timeout=timeout)
-    assert long_request.timeout == timeout
+    cache_ttl = 20
+    long_request = session.GETJSONRequest("delay/{n}", cache_ttl=cache_ttl)
+    assert long_request.cache_ttl == cache_ttl
 
     then = datetime.datetime.now()
     long_request(n=n)
@@ -53,7 +53,7 @@ def test_post_json():
     post_req = session.POSTJSONRequest("anything")
     data = {"a": 1, "b": 2}
     resp = post_req(**data)
-    assert resp["json"] == post_json
+    assert resp["json"] == data
 
 
 def test_url_subspost():
