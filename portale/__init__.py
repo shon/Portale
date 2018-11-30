@@ -50,7 +50,7 @@ class BaseRequest:
         return getattr(self.session, self.type.lower())
 
     def process_payload(self, payload):
-        return {'data': payload}
+        return payload
 
     def kw2payload(self, kw):
         return {k: v for k, v in kw.items() if k not in self.path_fields}
@@ -72,7 +72,15 @@ class BaseRequest:
 class JSONRequest(BaseRequest):
 
     def process_payload(self, payload):
-        return {'json': payload}
+        return {"json": payload}
+
+
+class GETRequest(BaseRequest):
+
+    def process_payload(self, payload):
+        params = payload.pop("params", {})
+        ret = {"data": payload, "params": params} if params else {"data": payload}
+        return ret
 
 
 class PrefixedURLSession(requests.Session):
@@ -95,7 +103,7 @@ class PrefixedURLSession(requests.Session):
         return response
 
     def GETRequest(self, path, cache_ttl=None):
-        return BaseRequest(self, "GET", path, cache_ttl=cache_ttl)
+        return GETRequest(self, "GET", path, cache_ttl=cache_ttl)
 
     def POSTRequest(self, path, cache_ttl=None):
         return BaseRequest(self, "POST", path, cache_ttl=cache_ttl)
