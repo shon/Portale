@@ -15,10 +15,25 @@ def test_set_cache_ttl():
     assert res["args"]["thing"] == "flask"
 
 
-def test_get_params():
+def test_params_in_url():
     get_thing_by_name = session.GETRequest("anything?thing={name}")
     resp = get_thing_by_name(name="snake")
     assert {"thing":"snake"} == resp.json()['args']
+    print(resp.json())
+
+
+def test_passing_params():
+    get_thing_by_name = session.GETRequest("anything")
+    resp = get_thing_by_name(params={"thing": "boa"})
+    assert resp.url.endswith("?thing=boa")
+    assert {"thing":"boa"} == resp.json()['args']
+    print(resp.json())
+
+    get_thing_by_name = session.POSTRequest("anything")
+    resp = get_thing_by_name(params={"thing": "boa"}, a=1)
+    assert resp.url.endswith("?thing=boa")
+    assert {"thing":"boa"} == resp.json()['args']
+    print(resp.json())
 
 
 def test_cache_request():

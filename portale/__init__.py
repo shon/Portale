@@ -17,7 +17,6 @@ cache = db.cache()
 
 
 class BaseRequest:
-
     def __init__(self, session, type, path, cache_ttl=None):
         self.cache_ttl = cache_ttl if cache_ttl is not None else session.cache_ttl
         self.cache_on = bool(self.cache_ttl)
@@ -34,11 +33,8 @@ class BaseRequest:
         self.path_fields = tuple(t[1] for t in f.parse(self.path))
 
     def bust(self, *pathargs, **kw):
-        path = self.path.format(*pathargs, **kw) if (
-            pathargs or kw
-        ) else self.path
-        payload_kw = self.kw2payload(kw)
-        payload = self.process_payload(payload_kw)
+        path = self.path.format(*pathargs, **kw) if (pathargs or kw) else self.path
+        payload = self.kw2payload(kw)
         self.cache.bust(path, **payload)
 
     def key_fn(self, a, k):
@@ -49,18 +45,20 @@ class BaseRequest:
     def method(self):
         return getattr(self.session, self.type.lower())
 
-    def process_payload(self, payload):
-        return {'data': payload}
+    def prep_payload(self, payload):
+        return {"data": payload}
 
     def kw2payload(self, kw):
-        return {k: v for k, v in kw.items() if k not in self.path_fields}
+        params = kw.pop("params", {})
+        data = {k: v for k, v in kw.items() if k not in self.path_fields}
+        payload = self.prep_payload(data)
+        if params:
+            payload["params"] = params
+        return payload
 
     def __call__(self, *pathargs, **kw):
-        path = self.path.format(*pathargs, **kw) if (
-            pathargs or kw
-        ) else self.path
-        payload_kw = self.kw2payload(kw)
-        payload = self.process_payload(payload_kw)
+        path = self.path.format(*pathargs, **kw) if (pathargs or kw) else self.path
+        payload = self.kw2payload(kw)
         response = self.send(path, **payload)
         if not response.ok:
             if self.cache_on:
@@ -70,13 +68,11 @@ class BaseRequest:
 
 
 class JSONRequest(BaseRequest):
-
-    def process_payload(self, payload):
-        return {'json': payload}
+    def prep_payload(self, payload):
+        return {"json": payload}
 
 
 class PrefixedURLSession(requests.Session):
-
     def __init__(self, baseurl, *args, cache_ttl=0, logger=None, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
