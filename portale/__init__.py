@@ -73,11 +73,13 @@ class JSONRequest(BaseRequest):
 
 
 class PrefixedURLSession(requests.Session):
-    def __init__(self, baseurl, *args, cache_ttl=0, logger=None, **kw):
+    def __init__(self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
         self.cache_ttl = cache_ttl
         self.logger = logger or logging.getLogger()
+        if headers:
+            self.headers.update(headers)
         self.__post_init__()
 
     def __post_init__(self):
