@@ -44,7 +44,7 @@ def test_cache_request():
     long_request = session.GETJSONRequest("delay/{n}", cache_ttl=cache_ttl)
     assert long_request.cache_ttl == cache_ttl
 
-    long_request.bust(n=n)
+    long_request.bust(n=n)  # resetting cache to ensure we don't use previous run's data
     then = datetime.datetime.now()
     long_request(n=n)
     now = datetime.datetime.now()
