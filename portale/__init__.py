@@ -35,7 +35,8 @@ class BaseRequest:
     def bust(self, *pathargs, **kw):
         path = self.path.format(*pathargs, **kw) if (pathargs or kw) else self.path
         payload = self.kw2payload(kw)
-        self.cache.bust(path, **payload)
+        headers = self.prep_headers(self.session.headers)
+        self.cache.bust(path, **payload, **headers)
 
     def key_fn(self, a, k):
         return hashlib.md5(
@@ -48,6 +49,9 @@ class BaseRequest:
     def prep_payload(self, payload):
         return {"data": payload}
 
+    def prep_headers(self, headers):
+        return {"headers": headers} if headers else {}
+
     def kw2payload(self, kw):
         params = kw.pop("params", {})
         data = {k: v for k, v in kw.items() if k not in self.path_fields}
@@ -59,10 +63,11 @@ class BaseRequest:
     def __call__(self, *pathargs, **kw):
         path = self.path.format(*pathargs, **kw) if (pathargs or kw) else self.path
         payload = self.kw2payload(kw)
-        response = self.send(path, **payload)
+        headers = self.prep_headers(self.session.headers)
+        response = self.send(path, **payload, **headers)
         if not response.ok:
             if self.cache_on:
-                self.cache.bust(path, **payload)
+                self.cache.bust(path, **payload, **headers)
             self.logger.error("[%s] %s:", response.status_code, path)
         return response
 
@@ -73,9 +78,10 @@ class JSONRequest(BaseRequest):
 
 
 class PrefixedURLSession(requests.Session):
-    def __init__(self, baseurl, *args, cache_ttl=0, logger=None, **kw):
+    def __init__(self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw):
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
+        self.headers = headers
         self.cache_ttl = cache_ttl
         self.logger = logger or logging.getLogger()
         self.__post_init__()

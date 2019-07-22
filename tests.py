@@ -1,7 +1,11 @@
 import datetime
 from portale import PrefixedURLSession
 
-session = PrefixedURLSession("https://eu.httpbin.org/", cache_ttl=5)
+session = PrefixedURLSession(
+    "https://eu.httpbin.org/",
+    headers={"Authorization": "Auth Token"},
+    cache_ttl=5
+)
 
 
 def test_set_cache_ttl():
@@ -27,13 +31,11 @@ def test_passing_params():
     resp = get_thing_by_name(params={"thing": "boa"})
     assert resp.url.endswith("?thing=boa")
     assert {"thing":"boa"} == resp.json()['args']
-    print(resp.json())
 
     get_thing_by_name = session.POSTRequest("anything")
     resp = get_thing_by_name(params={"thing": "boa"}, a=1)
     assert resp.url.endswith("?thing=boa")
     assert {"thing":"boa"} == resp.json()['args']
-    print(resp.json())
 
 
 def test_cache_request():
@@ -42,6 +44,7 @@ def test_cache_request():
     long_request = session.GETJSONRequest("delay/{n}", cache_ttl=cache_ttl)
     assert long_request.cache_ttl == cache_ttl
 
+    long_request.bust(n=n)
     then = datetime.datetime.now()
     long_request(n=n)
     now = datetime.datetime.now()
@@ -77,3 +80,9 @@ def test_url_subspost():
     data = {"name": "The Tipping Point", "ISBN": " 0-316-34662-4"}
     resp = post_req(category="books", **data)
     assert resp.json()["json"] == data
+
+
+def test_headers():
+    get_headers = session.GETRequest("headers")
+    resp = get_headers()
+    assert session.headers.items() < resp.json()["headers"].items()
