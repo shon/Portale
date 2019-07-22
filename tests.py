@@ -85,4 +85,4 @@ def test_url_subspost():
 def test_headers():
     get_headers = session.GETRequest("headers")
     resp = get_headers()
-    assert session.headers.items() < resp.json()["headers"].items()
+    assert session.headers["Authorization"] == resp.json()["headers"]["Authorization"]
