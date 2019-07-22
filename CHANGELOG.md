@@ -1,3 +1,7 @@
+## 0.9.2
+
+- Added headers support in session
+
 ## 0.9.0
 
 INCOMPATIBILITIES
