@@ -12,12 +12,12 @@ except:
 from urllib.parse import urljoin
 from walrus import Database
 
-db = Database()
-cache = db.cache()
-
 
 class BaseRequest:
     def __init__(self, session, type, path, cache_ttl=None):
+        self.db = session.db
+        self.session_cache = session.db.cache()
+
         self.cache_ttl = cache_ttl if cache_ttl is not None else session.cache_ttl
         self.cache_on = bool(self.cache_ttl)
         self.session = session
@@ -26,7 +26,7 @@ class BaseRequest:
         self.path = path
         self.send = self.method()
         if self.cache_on:
-            deco = cache.cached(self.key_fn, timeout=self.cache_ttl, metrics=True)
+            deco = self.session_cache.cached(self.key_fn, timeout=self.cache_ttl, metrics=True)
             self.send = deco(self.send)
             self.cache = self.send
         f = string.Formatter()
@@ -73,7 +73,16 @@ class JSONRequest(BaseRequest):
 
 
 class PrefixedURLSession(requests.Session):
-    def __init__(self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw):
+    def __init__(self, baseurl, *args, headers=None, cache_ttl=0,
+            logger=None, redis_host='localhost', redis_port=6379,
+            redis_db=0, redis_password=None, redis_socket_timeout=None, **kw
+        ):
+        self.db = Database(
+                    host=redis_host, port=redis_port,
+                    db=redis_db, password=redis_password,
+                    socket_timeout=redis_socket_timeout
+                 )
+
         super(PrefixedURLSession, self).__init__(*args, **kw)
         self.baseurl = baseurl
         self.cache_ttl = cache_ttl
