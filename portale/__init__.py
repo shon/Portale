@@ -4,10 +4,7 @@ import string
 
 import requests
 
-try:
-    import _pickle as pickle
-except:
-    import pickle
+import pickle
 
 from urllib.parse import urljoin
 from walrus import Database
