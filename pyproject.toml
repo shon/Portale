@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "portale"
-version = "0.9.2"
+version = "0.9.9"
 description = "Requests based HTTP/REST API client with flexible cache support"
 readme = "README.md"
 authors = [
@@ -21,6 +21,9 @@ dependencies = [
 
 [project.urls]
 Homepage = "http://pypi.python.org/pypi/portale/"
+
+[project.optional-dependencies]
+pyreqwest = ["pyreqwest"]
 
 [tool.setuptools]
 packages = {find = {}}

@@ -1,6 +1,22 @@
 # Portale
 
-Portale is a minimalistic, requests-based HTTP/REST API client with a key advantage over other libraries: it allows a different cache timeout policy for each API.
+Portale is a minimalistic, `requests`-based HTTP/REST API client with a key advantage over other libraries: it allows a different cache timeout policy for each API.
+
+Additionally, Portale can use `pyreqwest` as a backend for improved performance. 🚀
+
+## Installation
+
+You can install Portale from PyPI:
+
+```bash
+pip install portale
+```
+
+To use the `pyreqwest` backend, install the `pyreqwest` extra:
+
+```bash
+pip install portale[pyreqwest]
+```
 
 ## Simple Example
 
@@ -20,7 +36,7 @@ result1 = long_request(n=2).json()
 result2 = long_request(n=2).json()  # cached response
 ```
 
-## Cache
+## Cache 💾
 
 If `cache_ttl` is not specified in the `Request` initialization, the session's `cache_ttl` is used as the default for all APIs using that session.
 
@@ -44,10 +60,10 @@ long_request.cache.bust(n=n)
 print(long_request.cache.metrics)
 ```
 
-## Tests
+## Tests 🧪
 
 To run the tests, use the following command:
 
 ```bash
-python -m unittest tests
+pytest tests.py
 ```

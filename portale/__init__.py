@@ -1,12 +1,27 @@
 import hashlib
 import logging
+import pickle
 import string
+from urllib.parse import urljoin
+import json
+
+try:
+    from pyreqwest.client import SyncClientBuilder
+    from pyreqwest import errors as pyreqwest_errors
+
+    pyreqwest_available = True
+except ImportError:
+    pyreqwest_available = False
 
 import requests
-
-import pickle
-
-from urllib.parse import urljoin
+from requests.structures import CaseInsensitiveDict
+from requests.exceptions import (
+    HTTPError,
+    ConnectionError,
+    Timeout,
+    TooManyRedirects,
+    RequestException,
+)
 from walrus import Database
 
 db = Database()
@@ -69,26 +84,7 @@ class JSONRequest(BaseRequest):
         return {"json": payload}
 
 
-class PrefixedURLSession(requests.Session):
-    def __init__(self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw):
-        super(PrefixedURLSession, self).__init__(*args, **kw)
-        self.baseurl = baseurl
-        self.cache_ttl = cache_ttl
-        self.logger = logger or logging.getLogger()
-        if headers:
-            self.headers.update(headers)
-        self.__post_init__()
-
-    def __post_init__(self):
-        """
-        Post init hook
-        """
-
-    def request(self, method, url, *args, **kw):
-        url = urljoin(self.baseurl, url)
-        response = super(PrefixedURLSession, self).request(method, url, *args, **kw)
-        return response
-
+class RequestFactoryMixin:
     def GETRequest(self, path, cache_ttl=None):
         return BaseRequest(self, "GET", path, cache_ttl=cache_ttl)
 
@@ -118,3 +114,130 @@ class PrefixedURLSession(requests.Session):
 
     def DELETEJSONRequest(self, path, cache_ttl=None):
         return JSONRequest(self, "DELETE", path, cache_ttl=cache_ttl)
+
+
+class PrefixedURLSessionRequests(requests.Session, RequestFactoryMixin):
+    def __init__(self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw):
+        super(PrefixedURLSessionRequests, self).__init__(*args, **kw)
+        self.baseurl = baseurl
+        self.cache_ttl = cache_ttl
+        self.logger = logger or logging.getLogger()
+        if headers:
+            self.headers.update(headers)
+        self.__post_init__()
+
+    def __post_init__(self):
+        """
+        Post init hook
+        """
+
+    def request(self, method, url, *args, **kw):
+        url = urljoin(self.baseurl, url)
+        response = super(PrefixedURLSessionRequests, self).request(
+            method, url, *args, **kw
+        )
+        return response
+
+
+if pyreqwest_available:
+
+    class PyreqwestResponseWrapper:
+        def __init__(self, response, url):
+            self._content = bytes(response.bytes())
+            self._status_code = response.status
+            self.headers = CaseInsensitiveDict(response.headers)
+            self.url = url
+            self.encoding = "utf-8"  # A reasonable default
+
+        @property
+        def status_code(self):
+            return self._status_code
+
+        @property
+        def ok(self):
+            return self.status_code < 400
+
+        @property
+        def content(self):
+            return self._content
+
+        @property
+        def text(self):
+            return self._content.decode(self.encoding)
+
+        def json(self, **kwargs):
+            return json.loads(self.text, **kwargs)
+
+        def raise_for_status(self):
+            if not self.ok:
+                raise HTTPError(f"{self.status_code} Client Error for url: {self.url}")
+
+    class PrefixedURLSessionPyreqwest(RequestFactoryMixin):
+        def __init__(
+            self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw
+        ):
+            self.baseurl = baseurl
+            self.cache_ttl = cache_ttl
+            self.logger = logger or logging.getLogger()
+
+            builder = SyncClientBuilder()
+            if headers:
+                builder = builder.default_headers(headers)
+                self.headers = headers
+            else:
+                self.headers = {}
+
+            self._client = builder.build()
+            self.__post_init__()
+
+        def __post_init__(self):
+            """
+            Post init hook
+            """
+
+        def _request(self, method, url, params=None, data=None, json=None, **kwargs):
+            full_url = urljoin(self.baseurl, url)
+            request_builder = getattr(self._client, method.lower())(full_url)
+
+            if params:
+                request_builder = request_builder.query(params)
+            if data:
+                request_builder = request_builder.form(data)
+            if json:
+                request_builder = request_builder.json(json)
+
+            try:
+                response = request_builder.build().send()
+                return PyreqwestResponseWrapper(response, full_url)
+            except pyreqwest_errors.ConnectError as e:
+                raise ConnectionError(e) from e
+            except pyreqwest_errors.RequestTimeoutError as e:
+                raise Timeout(e) from e
+            except pyreqwest_errors.ReadTimeoutError as e:
+                raise Timeout(e) from e
+            except pyreqwest_errors.RedirectError as e:
+                raise TooManyRedirects(e) from e
+            except pyreqwest_errors.RequestError as e:
+                raise RequestException(e) from e
+
+        def get(self, url, **kwargs):
+            return self._request("GET", url, **kwargs)
+
+        def post(self, url, **kwargs):
+            return self._request("POST", url, **kwargs)
+
+        def patch(self, url, **kwargs):
+            return self._request("PATCH", url, **kwargs)
+
+        def head(self, url, **kwargs):
+            return self._request("HEAD", url, **kwargs)
+
+        def delete(self, url, **kwargs):
+            return self._request("DELETE", url, **kwargs)
+
+        def request(self, method, url, **kwargs):
+            return self._request(method, url, **kwargs)
+
+    PrefixedURLSession = PrefixedURLSessionPyreqwest
+else:
+    PrefixedURLSession = PrefixedURLSessionRequests
