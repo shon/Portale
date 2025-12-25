@@ -70,26 +70,24 @@ pytest tests.py
 
 ## Build and Upload
 
-To build the distribution, you can use the `build` package:
+First, install `uv`:
 
 ```bash
-pip install build
-python -m build
+pip install uv
+```
+
+To build the distribution, you can use the `uv build` command:
+
+```bash
+uv build
 ```
 
 This will create the `dist` directory with the source and wheel distributions.
 
-To upload the distribution to PyPI, you can use `twine`:
+To upload the distribution to PyPI, you can use `uv publish`:
 
 ```bash
-pip install twine
-twine upload dist/*
+uv publish
 ```
 
-It is recommended to use a `.pypirc` file with a PyPI API token for authentication:
-
-```
-[pypi]
-  username = __token__
-  password = pypi-your-token
-```
+It is recommended to set a PyPI token with the `UV_PUBLISH_TOKEN` environment variable.
