@@ -174,7 +174,14 @@ if pyreqwest_available:
 
     class PrefixedURLSessionPyreqwest(RequestFactoryMixin):
         def __init__(
-            self, baseurl, *args, headers=None, cache_ttl=0, logger=None, **kw
+            self,
+            baseurl,
+            *args,
+            headers=None,
+            cache_ttl=0,
+            logger=None,
+            timeout=None,
+            **kw,
         ):
             self.baseurl = baseurl
             self.cache_ttl = cache_ttl
@@ -186,6 +193,9 @@ if pyreqwest_available:
                 self.headers = headers
             else:
                 self.headers = {}
+
+            if timeout:
+                builder = builder.timeout(seconds=timeout)
 
             self._client = builder.build()
             self.__post_init__()

@@ -127,8 +127,49 @@ def test_raise_for_status(session):
     with pytest.raises(requests_exceptions.HTTPError):
         resp.raise_for_status()
 
+
+def test_patch_json(session):
+    patch_req = session.PATCHJSONRequest("patch")
+    data = {"a": 1, "b": 2}
+    resp = patch_req(**data)
+    assert resp.json()["json"] == data
+
+
+def test_head_request(session):
+    head_req = session.HEADRequest("headers")
+    resp = head_req()
+    assert resp.status_code == 200
+    # HEAD requests should not have a body
+    assert not resp.content
+
+
+def test_delete_request(session):
+    delete_req = session.DELETERequest("delete")
+    resp = delete_req()
+    assert resp.status_code == 200
+
+
+def test_post_form_data(session):
+    post_req = session.POSTRequest("post")
+    data = {"a": 1, "b": 2}
+    resp = post_req(**data)
+    assert resp.json()["form"] == {"a": "1", "b": "2"}
+
+
 if pyreqwest_available:
-    def test_exception_wrapping():
+
+    def test_pyreqwest_exception_wrapping():
         session = PrefixedURLSessionPyreqwest("http://localhost:12345")
         with pytest.raises(requests_exceptions.ConnectionError):
             session.GETRequest("anything")()
+
+        session = PrefixedURLSessionPyreqwest(
+            "https://eu.httpbin.org/", timeout=0.1
+        )
+        with pytest.raises(requests_exceptions.Timeout):
+            session.GETRequest("delay/1")()
+
+        # As of pyreqwest 0.5.1, there isn't a direct way to trigger TooManyRedirects
+        # session = PrefixedURLSessionPyreqwest("https://eu.httpbin.org/")
+        # with pytest.raises(requests_exceptions.TooManyRedirects):
+        #     session.GETRequest("redirect/10")()
