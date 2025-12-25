@@ -1,3 +1,7 @@
+## 0.9.9
+
+- Added `pyreqwest` as an optional backend for improved performance.
+
 ## 0.9.2
 
 - Added headers support in session

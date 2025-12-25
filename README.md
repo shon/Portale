@@ -67,3 +67,29 @@ To run the tests, use the following command:
 ```bash
 pytest tests.py
 ```
+
+## Build and Upload
+
+To build the distribution, you can use the `build` package:
+
+```bash
+pip install build
+python -m build
+```
+
+This will create the `dist` directory with the source and wheel distributions.
+
+To upload the distribution to PyPI, you can use `twine`:
+
+```bash
+pip install twine
+twine upload dist/*
+```
+
+It is recommended to use a `.pypirc` file with a PyPI API token for authentication:
+
+```
+[pypi]
+  username = __token__
+  password = pypi-your-token
+```
