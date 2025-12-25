@@ -2,7 +2,7 @@
 
 Portale is a minimalistic, `requests`-based HTTP/REST API client with a key advantage over other libraries: it allows a different cache timeout policy for each API.
 
-Additionally, Portale can use `pyreqwest` as a backend for improved performance. 🚀
+Additionally, Portale can use `pyreqwest` as a backend for improved performance. 🚀 If available, `portale` will prioritize it, with `requests` serving as a fallback.
 
 ## Installation
 
