@@ -36,6 +36,27 @@ result1 = long_request(n=2).json()
 result2 = long_request(n=2).json()  # cached response
 ```
 
+## Functional RPC-style Requests
+
+Instead of manually building URLs and handling parameters for every call, you can define your endpoints once and call them like standard Python functions.
+
+```python
+from portale import PrefixedURLSession
+
+# Initialize a session with a base URL
+session = PrefixedURLSession('https://httpbin.org/')
+
+# Define API endpoints as callable objects with optional caching
+# {0}, {1} indicate positional arguments; {foo}, {bar} indicate keyword arguments
+get_foobar = session.GETRequest('get?foo={0}&bar={1}', cache_ttl=10)
+get_foobar_named = session.GETRequest('get?foo={foo}&bar={bar}', cache_ttl=10)
+
+# Invoke the endpoints like local functions
+# The first call fetches from the server; subsequent calls within 10s return cached data
+print(get_foobar(1, 2).json())
+print(get_foobar_named(foo=2, bar=4).json())
+```
+
 ## Cache 💾
 
 If `cache_ttl` is not specified in the `Request` initialization, the session's `cache_ttl` is used as the default for all APIs using that session.
@@ -69,12 +90,6 @@ pytest tests.py
 ```
 
 ## Build and Upload
-
-First, install `uv`:
-
-```bash
-pip install uv
-```
 
 To build the distribution, you can use the `uv build` command:
 
